@@ -20,7 +20,7 @@ def get_optimizer(model):
     return optim.Adam(model.parameters(), lr=0.001)
 
 
-def train(train_dataset, transformer, epochs, device):
+def train(train_dataset, transformer, epochs, seq_len, device):
     """
     Trains the Transformer model on a given dataset for a specified number of epochs.
 
@@ -40,14 +40,14 @@ def train(train_dataset, transformer, epochs, device):
             target_batch = target_batch.to(device)
 
             batch_loss = _train_step(
-                input_batch, target_batch, transformer, optimizer, device)
+                input_batch, target_batch, transformer, optimizer, seq_len, device)
             total_loss += batch_loss.item()
 
             print(
                 f"Epoch {epoch + 1} Batch {batch_idx + 1} Loss {batch_loss.item():.4f}")
 
 
-def _train_step(input_batch, target_batch, transformer, optimizer, device):
+def _train_step(input_batch, target_batch, transformer, optimizer, seq_len, device):
     """
     Performs a single training step for the Transformer model.
 
@@ -69,7 +69,9 @@ def _train_step(input_batch, target_batch, transformer, optimizer, device):
 
     # Forward pass
     # change is needed
-    predictions = transformer(input_batch, target_input, None, None, None)
+    attn_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=1).bool()
+    predictions = transformer(
+        input_batch, target_input, None, None, None, attn_mask)
 
     # Compute loss
     loss = _calculate_loss(target_real, predictions)
@@ -135,6 +137,12 @@ if __name__ == "__main__":
     # ), batch_size=BATCH_SIZE, shuffle=True)
     train_dataset = melody_preprocessor.create_training_dataset(
     )
+
+    # defining a sequence length in order to give to mask
+    td = iter(train_dataset)
+    tdin = next(td)
+    seq_len = len(tdin[0][0])
+
     vocab_size = melody_preprocessor.number_of_tokens_with_padding
 
     # Initialize Transformer model
@@ -151,7 +159,7 @@ if __name__ == "__main__":
     ).to(device)
 
     # Train the model
-    train(train_dataset, transformer_model, EPOCHS, device)
+    train(train_dataset, transformer_model, EPOCHS, seq_len, device)
 
     # Generate a melody
     print("Generating a melody...")

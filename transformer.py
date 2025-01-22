@@ -56,10 +56,10 @@ class Transformer(nn.Module):
         )
         self.final_layer = nn.Linear(d_model, target_vocab_size)
 
-    def forward(self, input, target, enc_padding_mask, look_ahead_mask, dec_padding_mask):
+    def forward(self, input, target, enc_padding_mask, look_ahead_mask, dec_padding_mask, attn_mask):
         enc_output = self.encoder(input, enc_padding_mask)
         dec_output = self.decoder(
-            target, enc_output, look_ahead_mask, dec_padding_mask)
+            target, enc_output, look_ahead_mask, dec_padding_mask, attn_mask)
         logits = self.final_layer(dec_output)
         return logits
 
@@ -100,13 +100,13 @@ class Decoder(nn.Module):
         ])
         self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, x, enc_output, look_ahead_mask, padding_mask):
+    def forward(self, x, enc_output, look_ahead_mask, padding_mask, attn_mask):
         x = self.embedding(
             x) * torch.sqrt(torch.tensor(self.d_model, dtype=torch.float32))
         x = x + self.pos_encoding[:, :x.size(1), :]
         x = self.dropout(x)
         for layer in self.dec_layers:
-            x = layer(x, enc_output, look_ahead_mask, padding_mask)
+            x = layer(x, enc_output, look_ahead_mask, padding_mask, attn_mask)
         return x
 
 
@@ -152,8 +152,9 @@ class DecoderLayer(nn.Module):
         self.dropout2 = nn.Dropout(dropout_rate)
         self.dropout3 = nn.Dropout(dropout_rate)
 
-    def forward(self, x, enc_output, look_ahead_mask, padding_mask):
-        attn1, _ = self.mha1(x, x, x, key_padding_mask=look_ahead_mask)
+    def forward(self, x, enc_output, look_ahead_mask, padding_mask, attn_mask):
+        attn1, _ = self.mha1(x, x, x, attn_mask=attn_mask)
+        # attn1, _ = self.mha1(x, x, x, key_padding_mask=look_ahead_mask)
         out1 = self.layernorm1(x + self.dropout1(attn1))
         attn2, _ = self.mha2(out1, enc_output, enc_output,
                              key_padding_mask=padding_mask)

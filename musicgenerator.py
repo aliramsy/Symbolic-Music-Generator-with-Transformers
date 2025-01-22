@@ -40,7 +40,7 @@ class MelodyGenerator:
         for _ in range(num_notes_to_generate):
             # change the None
             predictions = self.transformer(
-                input_tensor, input_tensor, None, None, None)
+                input_tensor, input_tensor, None, None, None, None)
             predicted_note = self._get_note_with_highest_score(predictions)
             input_tensor = self._append_predicted_note(
                 input_tensor, predicted_note)
@@ -107,7 +107,6 @@ class MelodyGenerator:
         generated_sequence_array = generated_sequence.squeeze().tolist()
         # generated_melody = self.tokenizer.sequences_to_texts(
         #    generated_sequence_array)[0]
-        print(generated_sequence_array)
         generated_melody = self.sequences_to_texts(generated_sequence_array)
         return generated_melody
 

@@ -173,7 +173,6 @@ class MelodyPreprocessor:
 if __name__ == "__main__":
     # Usage example
     preprocessor = MelodyPreprocessor("dataset.json", batch_size=32)
-    preprocessor.create_training_dataset()
     training_dataloader = preprocessor.create_training_dataset()
     iterator = iter(training_dataloader)
     first_batch = next(iterator)
